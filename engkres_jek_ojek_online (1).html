@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENGKRES JEK - Ojek Online Banyuwangi</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        @keyframes drive {
+            0% { transform: translateX(-100px); }
+            100% { transform: translateX(calc(100vw + 100px)); }
+        }
+        .animate-motor {
+            animation: drive 6s linear infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col antialiased">
+
+    <!-- Header / Navbar -->
+    <header class="bg-emerald-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <img id="app-logo-display" src="" alt="Logo Engkres Jek" class="w-10 h-10 object-cover rounded-full bg-white p-0.5 shadow">
+                <div>
+                    <h1 class="font-extrabold text-lg tracking-wide uppercase" id="app-title-display">ENGKRES JEK</h1>
+                    <p class="text-xs text-emerald-100">Banyuwangi Ojek & Kurir</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="switchTab('customer')" id="nav-customer-btn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-emerald-700 shadow transition">Pelanggan</button>
+                <button onclick="openAdminModal()" id="nav-admin-btn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white transition flex items-center gap-1">
+                    <i data-lucide="shield" class="w-3.5 h-3.5"></i> Admin
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Moving Motor Animation Banner -->
+    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white overflow-hidden py-3 relative shadow-inner">
+        <div class="max-w-md mx-auto px-4 flex items-center justify-between relative z-10">
+            <span class="text-xs font-medium bg-emerald-700/60 px-2.5 py-1 rounded-full backdrop-blur-sm flex items-center gap-1">
+                <i data-lucide="zap" class="w-3 h-3 text-yellow-300"></i> Cepat & Aman
+            </span>
+            <span class="text-xs font-bold tracking-wider">LAYANAN 24 JAM</span>
+        </div>
+        <!-- Motor Animation Container -->
+        <div class="absolute bottom-1 left-0 whitespace-nowrap animate-motor pointer-events-none opacity-90 flex items-center gap-2">
+            <span class="text-2xl animate-float">🛵💨</span>
+            <span class="text-[10px] bg-black/40 text-white px-2 py-0.5 rounded-full font-mono">Engkres Jek On Duty</span>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 mb-16">
+        
+        <!-- CUSTOMER VIEW -->
+        <div id="view-customer" class="space-y-5">
+            
+            <!-- Service Selector Tabs -->
+            <div class="grid grid-cols-3 gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                <button onclick="setServiceType('ride')" id="svc-ride" class="flex flex-col items-center justify-center py-3 rounded-xl bg-emerald-600 text-white transition shadow-sm">
+                    <i data-lucide="bike" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs font-bold">Ride / Ojek</span>
+                </button>
+                <button onclick="setServiceType('food')" id="svc-food" class="flex flex-col items-center justify-center py-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+                    <i data-lucide="utensils" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs font-bold">Food / UMKM</span>
+                </button>
+                <button onclick="setServiceType('kurir')" id="svc-kurir" class="flex flex-col items-center justify-center py-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+                    <i data-lucide="package" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs font-bold">Kurir Paket</span>
+                </button>
+            </div>
+
+            <!-- Booking Form Card -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
+                <h2 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-emerald-600"></i> Detail Perjalanan & Pesanan
+                </h2>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Pemesan</label>
+                        <input type="text" id="order-name" placeholder="Masukkan nama Anda" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50">
+                    </div>
+
+                    <div id="dynamic-order-fields">
+                        <!-- Content changes based on service type -->
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Jarak Perkiraan (KM)</label>
+                            <input type="number" id="order-distance" min="1" value="1" oninput="calculateFare()" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50 font-bold text-emerald-700">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Total Tarif</label>
+                            <div id="fare-display" class="w-full px-3.5 py-2.5 text-sm rounded-xl bg-emerald-50 border border-emerald-200 font-extrabold text-emerald-700 flex items-center">
+                                Rp 8.000
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Selection Section -->
+                <div class="pt-2 border-t border-gray-100">
+                    <label class="block text-xs font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                        <span>Pilih Driver Kesayangan Anda</span>
+                        <span class="text-[10px] text-emerald-600 font-normal">Ketuk untuk memilih</span>
+                    </label>
+                    <div id="customer-driver-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- WhatsApp Order Action -->
+                <button onclick="submitOrderToWA()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition active:scale-[0.99]">
+                    <i data-lucide="message-circle" class="w-5 h-5"></i> Pesan via WhatsApp Admin
+                </button>
+            </div>
+
+            <!-- UMKM / Food Catalog Section -->
+            <div id="umkm-catalog-section" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                        <i data-lucide="store" class="w-4 h-4 text-emerald-600"></i> UMKM Kuliner Banyuwangi
+                    </h2>
+                    <span class="text-xs text-gray-500">Pilih Menu Favorit</span>
+                </div>
+                <div id="customer-umkm-list" class="grid grid-cols-1 gap-3">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ADMIN MODAL / PANEL -->
+        <div id="admin-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                
+                <!-- Modal Header -->
+                <div class="bg-emerald-700 text-white p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-yellow-300"></i>
+                        <h2 class="font-bold text-base" id="admin-modal-title">Panel Admin Engkres Jek</h2>
+                    </div>
+                    <button onclick="closeAdminModal()" class="p-1 rounded-full hover:bg-emerald-800 transition">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="p-4 overflow-y-auto flex-1 space-y-4" id="admin-modal-content">
+                    
+                    <!-- Login Form View -->
+                    <div id="admin-login-view" class="space-y-4 py-4">
+                        <div class="text-center space-y-1">
+                            <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <i data-lucide="lock" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="font-bold text-gray-800 text-lg">Login Khusus Admin</h3>
+                            <p class="text-xs text-gray-500">Masukkan kredensial admin untuk mengelola aplikasi.</p>
+                        </div>
+                        <div class="space-y-3 pt-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Username Admin</label>
+                                <input type="text" id="admin-user-input" placeholder="Username" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+                                <input type="password" id="admin-pass-input" placeholder="Password" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <button onclick="processAdminLogin()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition">
+                                Masuk Panel Admin
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Admin View -->
+                    <div id="admin-dashboard-view" class="hidden space-y-6">
+                        
+                        <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-emerald-800 font-bold">Status: Logged In as Admin</p>
+                                <p class="text-[11px] text-emerald-600">Semua perubahan tersimpan otomatis.</p>
+                            </div>
+                            <button onclick="adminLogout()" class="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg font-semibold transition">Logout</button>
+                        </div>
+
+                        <!-- 1. Edit Admin WhatsApp Contacts -->
+                        <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 space-y-3">
+                            <h3 class="font-bold text-gray-800 text-xs uppercase tracking-wider flex items-center gap-1.5 text-emerald-700">
+                                <i data-lucide="phone" class="w-4 h-4"></i> Pengaturan 2 Nomor WhatsApp Admin
+                            </h3>
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-gray-600">Nomor WhatsApp Admin 1</label>
+                                    <input type="text" id="admin-phone-1" placeholder="Contoh: 628123456789" class="w-full px-3 py-2 text-xs rounded-lg border border-gray-300 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-gray-600">Nomor WhatsApp Admin 2</label>
+                                    <input type="text" id="admin-phone-2" placeholder="Contoh: 628987654321" class="w-full px-3 py-2 text-xs rounded-lg border border-gray-300 bg-white">
+                                </div>
+                                <button onclick="saveAdminPhones()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition">Simpan Nomor Admin</button>
+                            </div>
+                        </div>
+
+                        <!-- 2. Edit App Logo -->
+                        <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 space-y-3">
+                            <h3 class="font-bold text-gray-800 text-xs uppercase tracking-wider flex items-center gap-1.5 text-emerald-700">
+                                <i data-lucide="image" class="w-4 h-4"></i> Ganti Logo Aplikasi
+                            </h3>
+                            <div class="space-y-2">
+                                <input type="file" id="admin-logo-file" accept="image/jpeg,image/png,image/jpg" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                                <button onclick="saveAdminLogo()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition">Upload & Ganti Logo</button>
+                            </div>
+                        </div>
+
+                        <!-- 3. Driver Management -->
+                        <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-gray-800 text-xs uppercase tracking-wider flex items-center gap-1.5 text-emerald-700">
+                                    <i data-lucide="users" class="w-4 h-4"></i> Kelola Driver Engkres Jek
+                                </h3>
+                                <button onclick="openAddDriverModal()" class="bg-emerald-600 text-white text-[10px] px-2.5 py-1 rounded-md font-bold hover:bg-emerald-700">+ Tambah Driver</button>
+                            </div>
+                            <div id="admin-driver-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- 4. UMKM Management -->
+                        <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-gray-800 text-xs uppercase tracking-wider flex items-center gap-1.5 text-emerald-700">
+                                    <i data-lucide="store" class="w-4 h-4"></i> Kelola UMKM & Kuliner
+                                </h3>
+                                <button onclick="openAddUmkmModal()" class="bg-emerald-600 text-white text-[10px] px-2.5 py-1 rounded-md font-bold hover:bg-emerald-700">+ Tambah UMKM</button>
+                            </div>
+                            <div id="admin-umkm-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ADD/EDIT DRIVER MODAL -->
+        <div id="driver-form-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-4 shadow-xl space-y-3">
+                <h3 class="font-bold text-gray-800 text-sm" id="driver-modal-header">Tambah Driver Baru</h3>
+                <input type="hidden" id="edit-driver-id">
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600">Nama Driver</label>
+                        <input type="text" id="df-name" class="w-full px-3 py-2 text-xs rounded-lg border border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600">Plat Nomor Kendaraan</label>
+                        <input type="text" id="df-plate" class="w-full px-3 py-2 text-xs rounded-lg border border-gray-300" placeholder="P 1234 XX">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600">Rating (1-5)</label>
+                        <input type="number" step="0.1" max="5" min="1" id="df-rating" value="5.0" class="w-full px-3 py-2 text-xs rounded-lg border border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600">Foto Driver (JPG/JPEG/PNG)</label>
+                        <input type="file" id="df-photo" accept="image/jpeg,image/png,image/jpg" class="w-full text-xs text-gray-500 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-emerald-50 file:text-emerald-700">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeDriverFormModal()" class="flex-1 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg">Batal</button>
+                    <button onclick="saveDriverData()" class="flex-1 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg">Simpan</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADD/EDIT UMKM MODAL -->
+        <div id="umkm-form-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-4 shadow-xl space-y-3">
+                <h3 class="font-bold text-gray-800 text-sm" id="umkm-modal-header">Tambah UMKM Baru</h3>
+                <input type="hidden" id="edit-umkm-id">
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600">Nama Toko / Kuliner</label>
+                        <input type="text" id="uf-name" class="w-full px-3 py-2 text-xs rounded-lg border border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600">Menu / Produk Utama</label>
+                        <input type="text" id="uf-menu" class="w-full px-3 py-2 text-xs rounded-lg border border-gray-300" placeholder="Nasi Tempong, Rawon, dll">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600">Harga Perkiraan (Rp)</label>
+                        <input type="number" id="uf-price" class="w-full px-3 py-2 text-xs rounded-lg border border-gray-300" placeholder="15000">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600">Foto UMKM / Makanan (JPG/JPEG/PNG)</label>
+                        <input type="file" id="uf-photo" accept="image/jpeg,image/png,image/jpg" class="w-full text-xs text-gray-500 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-emerald-50 file:text-emerald-700">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeUmkmFormModal()" class="flex-1 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg">Batal</button>
+                    <button onclick="saveUmkmData()" class="flex-1 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg">Simpan</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Branding -->
+    <footer class="bg-white border-t border-gray-200 py-3 text-center text-xs text-gray-500 mt-auto shadow-sm">
+        <p class="font-bold text-emerald-700">ENGKRES JEK BANYUWANGI</p>
+        <p class="text-[11px] text-gray-500 mt-0.5">Aplikasi by Cak Riyan</p>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const STORAGE_KEY_CONFIG = 'engkres_config_v2';
+        const STORAGE_KEY_DRIVERS = 'engkres_drivers_v2';
+        const STORAGE_KEY_UMKM = 'engkres_umkm_v2';
+
+        const defaultLogo = 'https://placehold.co/150x150/10b981/ffffff?text=ENGKRES';
+        
+        const defaultDrivers = [
+            { id: 1, name: 'Cak Slamet', plate: 'P 3421 EA', rating: 4.9, photo: 'https://placehold.co/100x100/e2e8f0/1e293b?text=Slamet' },
+            { id: 2, name: 'Kang Joko', plate: 'P 5678 BC', rating: 4.8, photo: 'https://placehold.co/100x100/e2e8f0/1e293b?text=Joko' },
+            { id: 3, name: 'Bli Wayan', plate: 'P 9012 DK', rating: 5.0, photo: 'https://placehold.co/100x100/e2e8f0/1e293b?text=Wayan' }
+        ];
+
+        const defaultUmkm = [
+            { id: 1, name: 'Warung Tempong Mbok Nah', menu: 'Nasi Tempong Spesial', price: 18000, photo: 'https://placehold.co/200x150/10b981/ffffff?text=Tempong' },
+            { id: 2, name: 'Pecel Rawon Khas Banyuwangi', menu: 'Pecel Rawon Daging', price: 20000, photo: 'https://placehold.co/200x150/059669/ffffff?text=Pecel+Rawon' },
+            { id: 3, name: 'Sate Lilit & Ayam Betutu', menu: 'Paket Sate Lilit Bali', price: 25000, photo: 'https://placehold.co/200x150/047857/ffffff?text=Sate+Lilit' }
+        ];
+
+        const defaultAdminConfig = {
+            phone1: '6281234567890',
+            phone2: '6289876543210',
+            logo: defaultLogo
+        };
+
+        let appConfig = JSON.parse(localStorage.getItem(STORAGE_KEY_CONFIG)) || defaultAdminConfig;
+        let drivers = JSON.parse(localStorage.getItem(STORAGE_KEY_DRIVERS)) || defaultDrivers;
+        let umkmList = JSON.parse(localStorage.getItem(STORAGE_KEY_UMKM)) || defaultUmkm;
+        
+        let currentService = 'ride';
+        let selectedDriverId = drivers[0]?.id || null;
+        let selectedUmkmItem = null;
+        let isAdminLoggedIn = false;
+
+        function compressImage(file, maxWidth = 300, maxHeight = 300, quality = 0.7) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            loadAppData();
+            renderDynamicForm();
+            renderCustomerDrivers();
+            renderCustomerUmkm();
+            calculateFare();
+        });
+
+        function persistData() {
+            localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(appConfig));
+            localStorage.setItem(STORAGE_KEY_DRIVERS, JSON.stringify(drivers));
+            localStorage.setItem(STORAGE_KEY_UMKM, JSON.stringify(umkmList));
+        }
+
+        function loadAppData() {
+            document.getElementById('app-logo-display').src = appConfig.logo || defaultLogo;
+            document.getElementById('admin-phone-1').value = appConfig.phone1 || '';
+            document.getElementById('admin-phone-2').value = appConfig.phone2 || '';
+        }
+
+        function switchTab(tab) {}
+
+        function setServiceType(type) {
+            currentService = type;
+            ['ride', 'food', 'kurir'].forEach(t => {
+                const btn = document.getElementById(`svc-${t}`);
+                if (t === type) {
+                    btn.className = 'flex flex-col items-center justify-center py-3 rounded-xl bg-emerald-600 text-white transition shadow-sm';
+                } else {
+                    btn.className = 'flex flex-col items-center justify-center py-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-gray-100 transition';
+                }
+            });
+            renderDynamicForm();
+        }
+
+        function renderDynamicForm() {
+            const container = document.getElementById('dynamic-order-fields');
+            if (currentService === 'ride') {
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Lokasi Penjemputan</label>
+                            <input type="text" id="pickup-loc" placeholder="Contoh: Stasiun Banyuwangi Kota" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Tujuan Pengantaran</label>
+                            <input type="text" id="dropoff-loc" placeholder="Contoh: Taman Blambangan" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50">
+                        </div>
+                    </div>
+                `;
+            } else if (currentService === 'food') {
+                container.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Pilihan Menu / UMKM</label>
+                        <input type="text" id="food-detail" value="${selectedUmkmItem ? selectedUmkmItem.name + ' - ' + selectedUmkmItem.menu : ''}" placeholder="Pilih dari katalog di bawah atau ketik pesanan" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Alamat Pengiriman Lengkap</label>
+                        <input type="text" id="dropoff-loc" placeholder="Masukkan alamat tujuan Anda" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50">
+                    </div>
+                `;
+            } else if (currentService === 'kurir') {
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Alamat Ambil Paket</label>
+                            <input type="text" id="pickup-loc" placeholder="Lokasi pengambilan paket" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Alamat Tujuan & Nama Penerima</label>
+                            <input type="text" id="dropoff-loc" placeholder="Nama penerima & alamat tujuan" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50">
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function calculateFare() {
+            const kmInput = document.getElementById('order-distance');
+            const km = parseFloat(kmInput.value) || 1;
+            let total = 8000;
+            if (km > 1) {
+                total = 10000 + (Math.max(0, km - 2) * 2000);
+            }
+            document.getElementById('fare-display').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+            return total;
+        }
+
+        function renderCustomerDrivers() {
+            const container = document.getElementById('customer-driver-list');
+            if (drivers.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-2">Belum ada driver tersedia.</p>`;
+                return;
+            }
+            container.innerHTML = drivers.map(d => `
+                <div onclick="selectDriver(${d.id})" class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition ${selectedDriverId === d.id ? 'border-emerald-600 bg-emerald-50/60 shadow-xs' : 'border-gray-200 bg-white hover:bg-gray-50'}">
+                    <div class="flex items-center space-x-3">
+                        <img src="${d.photo}" alt="${d.name}" class="w-10 h-10 object-cover rounded-full border border-gray-300" onerror="this.src='https://placehold.co/100x100?text=Driver'">
+                        <div>
+                            <p class="font-bold text-xs text-gray-800">${d.name}</p>
+                            <p class="text-[10px] text-gray-500">${d.plate} • ⭐ ${d.rating}</p>
+                        </div>
+                    </div>
+                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedDriverId === d.id ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'}">
+                        ${selectedDriverId === d.id ? '<span class="text-[10px]">✓</span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectDriver(id) {
+            selectedDriverId = id;
+            renderCustomerDrivers();
+        }
+
+        function renderCustomerUmkm() {
+            const container = document.getElementById('customer-umkm-list');
+            if (umkmList.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-2">Belum ada UMKM tersedia.</p>`;
+                return;
+            }
+            container.innerHTML = umkmList.map(u => `
+                <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-200 hover:border-emerald-500 transition">
+                    <div class="flex items-center space-x-3">
+                        <img src="${u.photo}" alt="${u.name}" class="w-12 h-12 object-cover rounded-lg border border-gray-200" onerror="this.src='https://placehold.co/200x150?text=UMKM'">
+                        <div>
+                            <h4 class="font-bold text-xs text-gray-800">${u.name}</h4>
+                            <p class="text-[11px] text-gray-600">${u.menu}</p>
+                            <p class="text-xs font-extrabold text-emerald-700">Rp ${Number(u.price).toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                    <button onclick="pickUmkmItem(${u.id})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow transition">
+                        Pilih
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function pickUmkmItem(id) {
+            const item = umkmList.find(x => x.id === id);
+            if (item) {
+                selectedUmkmItem = item;
+                setServiceType('food');
+                const foodInput = document.getElementById('food-detail');
+                if (foodInput) foodInput.value = `${item.name} - ${item.menu} (Rp ${item.price.toLocaleString('id-ID')})`;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function submitOrderToWA() {
+            const name = document.getElementById('order-name').value.trim();
+            const distance = document.getElementById('order-distance').value;
+            const fare = document.getElementById('fare-display').innerText;
+            const driver = drivers.find(d => d.id === selectedDriverId);
+
+            if (!name) {
+                alertCustom('Mohon masukkan nama pemesan terlebih dahulu.');
+                return;
+            }
+
+            let details = '';
+            if (currentService === 'ride') {
+                const pickup = document.getElementById('pickup-loc')?.value || '-';
+                const dropoff = document.getElementById('dropoff-loc')?.value || '-';
+                details = `Layanan: Ojek (Ride)\nJemput: ${pickup}\nTujuan: ${dropoff}`;
+            } else if (currentService === 'food') {
+                const food = document.getElementById('food-detail')?.value || '-';
+                const dropoff = document.getElementById('dropoff-loc')?.value || '-';
+                details = `Layanan: Food / UMKM\nPesanan: ${food}\nKirim ke: ${dropoff}`;
+            } else {
+                const pickup = document.getElementById('pickup-loc')?.value || '-';
+                const dropoff = document.getElementById('dropoff-loc')?.value || '-';
+                details = `Layanan: Kurir Paket\nAmbil: ${pickup}\nTujuan: ${dropoff}`;
+            }
+
+            const driverInfo = driver ? `${driver.name} (${driver.plate})` : 'Driver Acak / Menyesuaikan';
+            const message = `Halo Admin Engkres Jek,\n\nSaya ingin memesan ojek/kurir:\n\n*Nama:* ${name}\n${details}\n*Estimasi Jarak:* ${distance} KM\n*Total Tarif:* ${fare}\n*Driver Pilihan:* ${driverInfo}\n\nMohon segera diproses ya Kak. Terima kasih!`;
+            
+            const targetPhone = appConfig.phone1 || '6281234567890';
+            const waUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`;
+            window.open(waUrl, '_blank');
+        }
+
+        function alertCustom(msg) {
+            alert(msg);
+        }
+
+        function openAdminModal() {
+            document.getElementById('admin-modal').classList.remove('hidden');
+            if (isAdminLoggedIn) {
+                showAdminDashboard();
+            } else {
+                showAdminLogin();
+            }
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        }
+
+        function showAdminLogin() {
+            document.getElementById('admin-login-view').classList.remove('hidden');
+            document.getElementById('admin-dashboard-view').classList.add('hidden');
+            document.getElementById('admin-modal-title').innerText = 'Login Admin Engkres Jek';
+        }
+
+        function showAdminDashboard() {
+            document.getElementById('admin-login-view').classList.add('hidden');
+            document.getElementById('admin-dashboard-view').classList.remove('hidden');
+            document.getElementById('admin-modal-title').innerText = 'Dashboard Admin Engkres Jek';
+            renderAdminDrivers();
+            renderAdminUmkm();
+        }
+
+        function processAdminLogin() {
+            const u = document.getElementById('admin-user-input').value.trim();
+            const p = document.getElementById('admin-pass-input').value.trim();
+
+            if (u === 'engkres22' && p === '1234') {
+                isAdminLoggedIn = true;
+                showAdminDashboard();
+            } else {
+                alertCustom('Username atau Password Admin salah!');
+            }
+        }
+
+        function adminLogout() {
+            isAdminLoggedIn = false;
+            document.getElementById('admin-user-input').value = '';
+            document.getElementById('admin-pass-input').value = '';
+            showAdminLogin();
+        }
+
+        function saveAdminPhones() {
+            const p1 = document.getElementById('admin-phone-1').value.trim();
+            const p2 = document.getElementById('admin-phone-2').value.trim();
+            appConfig.phone1 = p1;
+            appConfig.phone2 = p2;
+            persistData();
+            loadAppData();
+            alertCustom('Nomor WhatsApp Admin berhasil disimpan!');
+        }
+
+        async function saveAdminLogo() {
+            const fileInput = document.getElementById('admin-logo-file');
+            if (fileInput.files && fileInput.files[0]) {
+                try {
+                    const compressedBase64 = await compressImage(fileInput.files[0], 250, 250, 0.7);
+                    appConfig.logo = compressedBase64;
+                    persistData();
+                    loadAppData();
+                    alertCustom('Logo aplikasi berhasil diganti!');
+                } catch (err) {
+                    alertCustom('Gagal mengunggah logo. Pastikan ukuran file wajar.');
+                }
+            } else {
+                alertCustom('Silakan pilih file gambar logo terlebih dahulu.');
+            }
+        }
+
+        function renderAdminDrivers() {
+            const container = document.getElementById('admin-driver-list');
+            container.innerHTML = drivers.map(d => `
+                <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-gray-200 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <img src="${d.photo}" class="w-8 h-8 rounded-full object-cover border" onerror="this.src='https://placehold.co/100x100?text=D'">
+                        <div>
+                            <p class="font-bold text-gray-800">${d.name}</p>
+                            <p class="text-[10px] text-gray-500">${d.plate} • ⭐${d.rating}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="editDriver(${d.id})" class="px-2 py-1 bg-blue-500 text-white rounded text-[10px] font-semibold">Edit</button>
+                        <button onclick="deleteDriver(${d.id})" class="px-2 py-1 bg-red-500 text-white rounded text-[10px] font-semibold">Hapus</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openAddDriverModal() {
+            document.getElementById('driver-modal-header').innerText = 'Tambah Driver Baru';
+            document.getElementById('edit-driver-id').value = '';
+            document.getElementById('df-name').value = '';
+            document.getElementById('df-plate').value = '';
+            document.getElementById('df-rating').value = '5.0';
+            document.getElementById('df-photo').value = '';
+            document.getElementById('driver-form-modal').classList.remove('hidden');
+        }
+
+        function editDriver(id) {
+            const d = drivers.find(x => x.id === id);
+            if (!d) return;
+            document.getElementById('driver-modal-header').innerText = 'Edit Driver';
+            document.getElementById('edit-driver-id').value = d.id;
+            document.getElementById('df-name').value = d.name;
+            document.getElementById('df-plate').value = d.plate;
+            document.getElementById('df-rating').value = d.rating;
+            document.getElementById('driver-form-modal').classList.remove('hidden');
+        }
+
+        function closeDriverFormModal() {
+            document.getElementById('driver-form-modal').classList.add('hidden');
+        }
+
+        async function saveDriverData() {
+            const id = document.getElementById('edit-driver-id').value;
+            const name = document.getElementById('df-name').value.trim();
+            const plate = document.getElementById('df-plate').value.trim();
+            const rating = parseFloat(document.getElementById('df-rating').value) || 5.0;
+            const fileInput = document.getElementById('df-photo');
+
+            if (!name || !plate) {
+                alertCustom('Nama dan plat nomor wajib diisi.');
+                return;
+            }
+
+            let photoBase64 = null;
+            if (fileInput.files && fileInput.files[0]) {
+                try {
+                    photoBase64 = await compressImage(fileInput.files[0], 200, 200, 0.7);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            if (id) {
+                drivers = drivers.map(d => {
+                    if (d.id == id) {
+                        return {
+                            ...d,
+                            name,
+                            plate,
+                            rating,
+                            photo: photoBase64 || d.photo
+                        };
+                    }
+                    return d;
+                });
+            } else {
+                const newDriver = {
+                    id: Date.now(),
+                    name,
+                    plate,
+                    rating,
+                    photo: photoBase64 || 'https://placehold.co/100x100?text=Driver'
+                };
+                drivers.push(newDriver);
+            }
+            persistData();
+            renderAdminDrivers();
+            renderCustomerDrivers();
+            closeDriverFormModal();
+            alertCustom('Data driver berhasil disimpan!');
+        }
+
+        function deleteDriver(id) {
+            if (confirm('Yakin ingin menghapus driver ini?')) {
+                drivers = drivers.filter(d => d.id !== id);
+                persistData();
+                renderAdminDrivers();
+                renderCustomerDrivers();
+            }
+        }
+
+        function renderAdminUmkm() {
+            const container = document.getElementById('admin-umkm-list');
+            container.innerHTML = umkmList.map(u => `
+                <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-gray-200 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <img src="${u.photo}" class="w-8 h-8 rounded object-cover border" onerror="this.src='https://placehold.co/200x150?text=U'">
+                        <div>
+                            <p class="font-bold text-gray-800">${u.name}</p>
+                            <p class="text-[10px] text-gray-500">${u.menu} • Rp ${Number(u.price).toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="editUmkm(${u.id})" class="px-2 py-1 bg-blue-500 text-white rounded text-[10px] font-semibold">Edit</button>
+                        <button onclick="deleteUmkm(${u.id})" class="px-2 py-1 bg-red-500 text-white rounded text-[10px] font-semibold">Hapus</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openAddUmkmModal() {
+            document.getElementById('umkm-modal-header').innerText = 'Tambah UMKM Baru';
+            document.getElementById('edit-umkm-id').value = '';
+            document.getElementById('uf-name').value = '';
+            document.getElementById('uf-menu').value = '';
+            document.getElementById('uf-price').value = '';
+            document.getElementById('uf-photo').value = '';
+            document.getElementById('umkm-form-modal').classList.remove('hidden');
+        }
+
+        function editUmkm(id) {
+            const u = umkmList.find(x => x.id === id);
+            if (!u) return;
+            document.getElementById('umkm-modal-header').innerText = 'Edit UMKM';
+            document.getElementById('edit-umkm-id').value = u.id;
+            document.getElementById('uf-name').value = u.name;
+            document.getElementById('uf-menu').value = u.menu;
+            document.getElementById('uf-price').value = u.price;
+            document.getElementById('umkm-form-modal').classList.remove('hidden');
+        }
+
+        function closeUmkmFormModal() {
+            document.getElementById('umkm-form-modal').classList.add('hidden');
+        }
+
+        async function saveUmkmData() {
+            const id = document.getElementById('edit-umkm-id').value;
+            const name = document.getElementById('uf-name').value.trim();
+            const menu = document.getElementById('uf-menu').value.trim();
+            const price = parseFloat(document.getElementById('uf-price').value) || 0;
+            const fileInput = document.getElementById('uf-photo');
+
+            if (!name || !menu) {
+                alertCustom('Nama dan menu UMKM wajib diisi.');
+                return;
+            }
+
+            let photoBase64 = null;
+            if (fileInput.files && fileInput.files[0]) {
+                try {
+                    photoBase64 = await compressImage(fileInput.files[0], 300, 200, 0.7);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            if (id) {
+                umkmList = umkmList.map(u => {
+                    if (u.id == id) {
+                        return {
+                            ...u,
+                            name,
+                            menu,
+                            price,
+                            photo: photoBase64 || u.photo
+                        };
+                    }
+                    return u;
+                });
+            } else {
+                const newUmkm = {
+                    id: Date.now(),
+                    name,
+                    menu,
+                    price,
+                    photo: photoBase64 || 'https://placehold.co/200x150?text=UMKM'
+                };
+                umkmList.push(newUmkm);
+            }
+            persistData();
+            renderAdminUmkm();
+            renderCustomerUmkm();
+            closeUmkmFormModal();
+            alertCustom('Data UMKM berhasil disimpan!');
+        }
+
+        function deleteUmkm(id) {
+            if (confirm('Yakin ingin menghapus UMKM ini?')) {
+                umkmList = umkmList.filter(u => u.id !== id);
+                persistData();
+                renderAdminUmkm();
+                renderCustomerUmkm();
+            }
+        }
+    </script>
+</body>
+</html>
