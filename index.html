@@ -97,6 +97,12 @@ h1,h2,h3,.brand b,.phone-hello b,.quick-tile b{font-family:Manrope,'Plus Jakarta
 @media(max-width:370px){.hero-inner{padding:23px 17px 0}.hero h1{font-size:28px}.eyebrow{font-size:8px}.hero-actions{gap:7px}.hero-cta,.hero-secondary{padding:10px 11px}.quick-tile b{font-size:9.5px}}
 @media(prefers-reduced-motion:reduce){.quick-tile,.phone-service{transition:none}}
 
+/* Perbaikan form login admin, aksesibilitas, serta diagnostik Firebase */
+.password-wrap{position:relative}.password-wrap input{padding-right:83px}.show-password{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:#e8f7ef;color:#086b45;border:0;border-radius:9px;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer}
+.auth-tools{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-top:15px}.auth-link{border:0;background:transparent;color:#08784c;font-size:12px;font-weight:800;text-decoration:underline;text-underline-offset:3px;padding:4px 0;cursor:pointer}
+.auth-notice:not(:empty){background:#fff7ed;border:1px solid #f9dbb5;border-radius:12px;padding:12px 14px;color:#7c4316;font-weight:600;line-height:1.65;font-size:12px;margin:14px 0 0;white-space:pre-line}
+.auth-notice.good:not(:empty){background:#effcf2;color:#086b45;border-color:#b4e4c4}.auth-check{margin-top:12px;padding:12px 14px;border:1px solid #d3eadb;border-radius:12px;background:#f5fbf6;color:#315a44;font-size:12px;line-height:1.7;overflow-wrap:anywhere;white-space:pre-line}
+.auth-check[hidden]{display:none}@media(max-width:450px){.auth-tools{flex-direction:column;align-items:flex-start}.auth-link{font-size:11px}}
 </style>
 </head>
 <body>
@@ -203,7 +209,17 @@ h1,h2,h3,.brand b,.phone-hello b,.quick-tile b{font-family:Manrope,'Plus Jakarta
 <footer class="site-footer"><b>🛵 ENGKRES JEK</b>Layanan ojek, belanja & kurir • Songgon, Banyuwangi<br>Aplikasi by Cak Riyan</footer>
 <nav class="bottom-nav" aria-label="Navigasi cepat di ponsel"><a href="#pesan"><span class="nav-emoji">📍</span>Pesan</a><a href="#driver"><span class="nav-emoji">🛵</span>Driver</a><a href="#umkm"><span class="nav-emoji">🏪</span>UMKM</a></nav>
 <div id="admin-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="dialog"><div class="dialog-head"><h2 id="modal-title">Admin ENGKRES JEK</h2><button id="close-admin" class="close">✕</button></div>
-<div id="login-view"><p class="hint" style="font-size:12px;margin-bottom:15px">Login menggunakan akun Email/Password yang dibuat di Firebase Authentication.</p><div class="gap"><div><label for="login-email">Email Admin</label><input id="login-email" type="email" autocomplete="username" class="field" placeholder="admin@contoh.com"></div><div><label for="login-password">Password</label><input id="login-password" type="password" autocomplete="current-password" class="field" placeholder="Kata sandi Firebase"></div></div><button class="primary full" id="login-button">Masuk Admin</button><p class="hint" id="login-message"></p></div>
+<div id="login-view">
+  <p class="hint" style="font-size:12px;margin-bottom:15px">Masuk dengan <b>akun Firebase Authentication</b> yang didaftarkan untuk ENGKRES JEK. Password akun ini bisa berbeda dari password Gmail.</p>
+  <form id="login-form" class="gap" autocomplete="on">
+   <div><label for="login-email">Email Admin</label><input id="login-email" type="email" autocomplete="username" class="field" placeholder="Email yang didaftarkan di Firebase" required></div>
+   <div><label for="login-password">Password</label><div class="password-wrap"><input id="login-password" type="password" autocomplete="current-password" class="field" placeholder="Password akun Firebase" required><button type="button" id="toggle-password" class="show-password" aria-label="Tampilkan password">Lihat</button></div></div>
+   <button class="primary full" id="login-button" type="submit">Masuk Admin</button>
+  </form>
+  <div class="auth-tools"><button type="button" id="reset-password" class="auth-link">Lupa password? Kirim email pemulihan</button><button type="button" id="check-config" class="auth-link">Periksa koneksi Firebase</button></div>
+  <p class="auth-notice" id="login-message" role="status" aria-live="polite"></p>
+  <div class="auth-check" id="firebase-diagnostic" role="status" aria-live="polite" hidden></div>
+ </div>
 <div id="admin-view" class="hidden">
 <div class="notice">✅ Perubahan disimpan di Cloud Firestore dan langsung tersinkron ke laptop dan HP pelanggan. <span id="admin-email"></span></div>
 <div class="admin-sub">Pengaturan Aplikasi</div><div class="gap">
@@ -219,7 +235,7 @@ h1,h2,h3,.brand b,.phone-hello b,.quick-tile b{font-family:Manrope,'Plus Jakarta
 <script src="./firebase-config.js"></script>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js';
-import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js';
+import {getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js';
 import {getFirestore,collection,doc,setDoc,addDoc,deleteDoc,onSnapshot,writeBatch,serverTimestamp} from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js';
 const $ = id=>document.getElementById(id); const q=sel=>document.querySelector(sel);
 const currency=n=>'Rp '+(Number(n)||0).toLocaleString('id-ID');
@@ -230,7 +246,27 @@ const safeImg=(src,label)=>{if(typeof src==='string'&&(src.startsWith('data:imag
 let db=null,auth=null,authUser=null,isAdmin=false,drivers=[],shops=[],settings={},service='ride',selectedDriver='',selectedShop=null,initial={drivers:false,shops:false,settings:false};
 const collectionDrivers=()=>collection(db,'drivers'); const collectionShops=()=>collection(db,'umkm'); const settingRef=()=>doc(db,'app','public');
 function status(message,type=''){let el=$('sync-status');el.textContent=message;el.className='status '+type}
-function errorMessage(e){console.error(e);let code=e?.code||'unknown';return ({'auth/invalid-credential':'Email atau password salah.','auth/too-many-requests':'Terlalu banyak percobaan masuk. Coba lagi nanti.','permission-denied':'Akses Firebase ditolak. Periksa ADMIN_UID dan Firestore Rules.','unavailable':'Jaringan atau Firebase sedang tidak tersedia.'})[code]||`${e?.message||'Terjadi kesalahan'} (${code})`}
+function errorMessage(e){
+ console.error('ENGKRES JEK:',e?.code||e?.message||e);
+ const code=String(e?.code||'unknown');
+ const messages={
+  'auth/invalid-credential':'Email atau password tidak cocok dengan akun Firebase proyek ini. Periksa Authentication > Users di proyek yang tercantum pada tombol Periksa koneksi Firebase. Jika lupa, gunakan reset password.',
+  'auth/wrong-password':'Email atau password tidak cocok dengan akun Firebase proyek ini.',
+  'auth/user-not-found':'Email ini tidak ditemukan di Authentication > Users pada proyek Firebase yang terhubung.',
+  'auth/invalid-email':'Format email belum benar. Contoh: nama@gmail.com',
+  'auth/missing-password':'Isi password sebelum login.',
+  'auth/user-disabled':'Akun ini dinonaktifkan di Firebase Authentication.',
+  'auth/operation-not-allowed':'Metode Email/Password belum diaktifkan. Buka Firebase Console > Authentication > Sign-in method.',
+  'auth/unauthorized-domain':'Domain website belum diizinkan oleh Firebase. Periksa Authentication > Settings > Authorized domains.',
+  'auth/invalid-api-key':'API key Firebase tidak cocok atau belum valid. Periksa firebase-config.js.',
+  'auth/network-request-failed':'Tidak dapat menjangkau Firebase. Periksa internet, koneksi browser, atau pemblokir jaringan.',
+  'auth/too-many-requests':'Terlalu banyak percobaan. Hentikan percobaan berulang, tunggu sampai pembatasan Firebase selesai, lalu coba lagi.',
+  'permission-denied':'Izin Firestore ditolak. Pastikan Firestore Rules memberi hak baca publik untuk katalog dan tulis hanya untuk UID admin resmi.',
+  'firestore/permission-denied':'Izin Firestore ditolak. Periksa Firestore Rules untuk koleksi drivers, umkm, dan dokumen app/public.',
+  'unavailable':'Jaringan atau Firestore tidak tersedia saat ini.'
+ };
+ return messages[code]||('Ada kendala Firebase ('+code+'). Periksa Console browser.');
+}
 function cleanPhone(v){let d=String(v||'').replace(/\D/g,'');if(d.startsWith('0'))d='62'+d.slice(1);if(d.startsWith('8'))d='62'+d;return d}
 function fare(){const km=Math.max(1,Math.ceil(Number($('order-distance').value)||1));return km<=1?8000:10000+Math.max(0,km-2)*2000}
 function updateFare(){$('fare-display').textContent=currency(fare())}
@@ -238,17 +274,68 @@ function serviceFields(){let el=$('service-fields');let shared='class="field" ma
 function setService(v){service=v;document.querySelectorAll('[data-service]').forEach(b=>b.classList.toggle('active',b.dataset.service===v));serviceFields()}
 document.querySelectorAll('[data-service]').forEach(b=>b.addEventListener('click',()=>setService(b.dataset.service)));
 $('order-distance').addEventListener('input',updateFare);
-function renderDrivers(){const el=$('customer-driver-list');const avail=drivers.filter(x=>x.status!=='off');if(!avail.some(x=>x.id===selectedDriver))selectedDriver=avail.find(x=>x.status==='online')?.id||'';el.innerHTML=drivers.length?drivers.map(d=>{const active=selectedDriver===d.id;const statusText=({online:'Online',busy:'Dalam pengantaran',off:'Off'})[d.status]||'Online';return `<button type="button" class="item ${active?'selected':''}" data-choose-driver="${esc(d.id)}" ${d.status==='off'?'disabled':''} style="text-align:left;width:100%"><img class="photo" src="${safeImg(d.photo,d.name)}" alt="Foto driver"><div class="details"><b>${esc(d.name)}</b><span>${esc(d.plate||'-')} · ⭐${Number(d.rating||5).toFixed(1)}</span><br><span class="tag ${d.status==='busy'?'busy':d.status==='off'?'off':''}">${statusText}</span></div><span class="check">${active?'✓':''}</span></button>`}).join(''):'<div class="empty">Belum ada driver online. Admin dapat menambahkan driver di dashboard.</div>';el.querySelectorAll('[data-choose-driver]').forEach(b=>b.onclick=()=>{const d=drivers.find(x=>x.id===b.dataset.chooseDriver);if(d&&d.status==='online'){selectedDriver=d.id;renderDrivers()}else alert('Driver sedang tidak tersedia. Pilih driver Online.')})}
-function renderShops(){const el=$('customer-umkm-list');el.innerHTML=shops.length?shops.map(s=>`<div class="item"><img class="photo shop" src="${safeImg(s.photo,s.name)}" alt="Foto UMKM"><div class="details"><b>${esc(s.name)}</b><span>${esc(s.menu||'-')}</span><br><span class="money">${currency(s.price)}</span><br><span class="tag ${s.open===false?'off':''}">${s.open===false?'Tutup':'Buka'}</span></div><button class="primary micro" data-choose-shop="${esc(s.id)}" ${s.open===false?'disabled':''}>Pilih</button></div>`).join(''):'<div class="empty">Katalog UMKM belum diisi admin.</div>';el.querySelectorAll('[data-choose-shop]').forEach(b=>b.onclick=()=>{selectedShop=shops.find(x=>x.id===b.dataset.chooseShop);setService('food');window.scrollTo({top:0,behavior:'smooth'})})}
+function renderDrivers(){const el=$('customer-driver-list');const avail=drivers.filter(x=>x.status==='online');if(!avail.some(x=>x.id===selectedDriver))selectedDriver=avail.find(x=>x.status==='online')?.id||'';el.innerHTML=drivers.length?drivers.map(d=>{const active=selectedDriver===d.id;const statusText=({online:'Online',busy:'Dalam pengantaran',off:'Off'})[d.status]||'Online';return `<button type="button" class="item ${active?'selected':''}" data-choose-driver="${esc(d.id)}" ${d.status!=='online'?'disabled':''} style="text-align:left;width:100%"><img class="photo" src="${esc(safeImg(d.photo,d.name))}" alt="Foto driver"><div class="details"><b>${esc(d.name)}</b><span>${esc(d.plate||'-')} · ⭐${Number(d.rating||5).toFixed(1)}</span><br><span class="tag ${d.status==='busy'?'busy':d.status==='off'?'off':''}">${statusText}</span></div><span class="check">${active?'✓':''}</span></button>`}).join(''):'<div class="empty">Belum ada driver online. Admin dapat menambahkan driver di dashboard.</div>';el.querySelectorAll('[data-choose-driver]').forEach(b=>b.onclick=()=>{const d=drivers.find(x=>x.id===b.dataset.chooseDriver);if(d&&d.status==='online'){selectedDriver=d.id;renderDrivers()}else alert('Driver sedang tidak tersedia. Pilih driver Online.')})}
+function renderShops(){const el=$('customer-umkm-list');el.innerHTML=shops.length?shops.map(s=>`<div class="item"><img class="photo shop" src="${esc(safeImg(s.photo,s.name))}" alt="Foto UMKM"><div class="details"><b>${esc(s.name)}</b><span>${esc(s.menu||'-')}</span><br><span class="money">${currency(s.price)}</span><br><span class="tag ${s.open===false?'off':''}">${s.open===false?'Tutup':'Buka'}</span></div><button class="primary micro" data-choose-shop="${esc(s.id)}" ${s.open===false?'disabled':''}>Pilih</button></div>`).join(''):'<div class="empty">Katalog UMKM belum diisi admin.</div>';el.querySelectorAll('[data-choose-shop]').forEach(b=>b.onclick=()=>{selectedShop=shops.find(x=>x.id===b.dataset.chooseShop);setService('food');window.scrollTo({top:0,behavior:'smooth'})})}
 function renderSettings(){const logo=safeImg(settings.logo||fallbackLogo,'ENGKRES');$('header-logo').src=logo; if(isAdmin){$('admin-phone1').value=settings.phone1||'';$('admin-phone2').value=settings.phone2||''}}
-function renderAdminLists(){if(!isAdmin)return;const show=(list,kind,id)=>{const el=$(id);el.innerHTML=list.length?list.map(d=>`<div class="admin-row"><img src="${safeImg(d.photo,d.name)}" alt=""><div class="desc"><b>${esc(d.name)}</b><div class="hint">${kind==='drivers'?esc(d.plate)+' · '+({online:'Online',busy:'Dalam pengantaran',off:'Off'}[d.status]||'Online'):esc(d.menu)+' · '+currency(d.price)}</div></div><button class="outline micro" data-edit="${esc(d.id)}">Edit</button><button class="danger micro" data-delete="${esc(d.id)}">Hapus</button></div>`).join(''):'<div class="empty">Belum ada data.</div>';el.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(kind,b.dataset.edit));el.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>removeRecord(kind,b.dataset.delete))};show(drivers,'drivers','admin-drivers');show(shops,'umkm','admin-umkm')}
+function renderAdminLists(){if(!isAdmin)return;const show=(list,kind,id)=>{const el=$(id);el.innerHTML=list.length?list.map(d=>`<div class="admin-row"><img src="${esc(safeImg(d.photo,d.name))}" alt=""><div class="desc"><b>${esc(d.name)}</b><div class="hint">${kind==='drivers'?esc(d.plate)+' · '+({online:'Online',busy:'Dalam pengantaran',off:'Off'}[d.status]||'Online'):esc(d.menu)+' · '+currency(d.price)}</div></div><button class="outline micro" data-edit="${esc(d.id)}">Edit</button><button class="danger micro" data-delete="${esc(d.id)}">Hapus</button></div>`).join(''):'<div class="empty">Belum ada data.</div>';el.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(kind,b.dataset.edit));el.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>removeRecord(kind,b.dataset.delete))};show(drivers,'drivers','admin-drivers');show(shops,'umkm','admin-umkm')}
 function submitOrder(){let name=$('order-name').value.trim(),dest=$('destination')?.value.trim(),d=drivers.find(x=>x.id===selectedDriver);if(!name||!dest){alert('Mohon isi nama pemesan dan alamat tujuan.');return}const phone=cleanPhone(settings.phone1||settings.phone2);if(!/^62\d{8,13}$/.test(phone)){alert('Nomor WhatsApp admin belum diatur. Hubungi pengelola ENGKRES JEK.');return}let parts=['Halo Admin ENGKRES JEK, saya ingin memesan:',`Nama: ${name}`,`Layanan: ${service==='ride'?'Ojek':service==='food'?'Belanja / UMKM':'Kurir'}`];if($('pickup'))parts.push('Penjemputan: '+($('pickup').value||'-'));if($('order-items'))parts.push('Kebutuhan: '+($('order-items').value||'-'));parts.push('Tujuan: '+dest,`Jarak: ${$('order-distance').value||1} km`,`Estimasi ongkos: ${currency(fare())}`,`Driver: ${d?d.name+' ('+d.plate+')':'Disesuaikan Admin'}`,'Mohon konfirmasi biaya dan ketersediaannya. Terima kasih.');window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(parts.join('\n')),'_blank','noopener,noreferrer')}
 $('wa-order').onclick=submitOrder;
-function openAdmin(){if(!auth){alert('Firebase belum dikonfigurasi. Ikuti PETUNJUK_SETUP.txt di paket.');return}$('admin-modal').classList.remove('hidden');renderAuth()}
+function openAdmin(){$('admin-modal').classList.remove('hidden');renderAuth();if(!auth)firebaseDiagnostic()}
 function renderAuth(){$('login-view').classList.toggle('hidden',isAdmin);$('admin-view').classList.toggle('hidden',!isAdmin);$('modal-title').textContent=isAdmin?'Dashboard Admin ENGKRES JEK':'Login Admin ENGKRES JEK';$('admin-email').textContent=isAdmin?'Akun: '+authUser.email:'';if(isAdmin){renderAdminLists();renderSettings()}}
 $('admin-tab').onclick=openAdmin;$('customer-tab').onclick=()=>{$('admin-modal').classList.add('hidden');window.scrollTo({top:0,behavior:'smooth'})};$('close-admin').onclick=()=>$('admin-modal').classList.add('hidden');$('admin-modal').addEventListener('click',e=>{if(e.target.id==='admin-modal')$('admin-modal').classList.add('hidden')});
-$('login-button').onclick=async()=>{if(!auth)return;const email=$('login-email').value.trim(),pwd=$('login-password').value;const btn=$('login-button');btn.disabled=true;$('login-message').textContent='Memeriksa akun…';try{await signInWithEmailAndPassword(auth,email,pwd);$('login-password').value='';$('login-message').textContent=''}catch(e){$('login-message').textContent=errorMessage(e)}finally{btn.disabled=false}};
-$('login-password').addEventListener('keydown',e=>{if(e.key==='Enter')$('login-button').click()});
+function loginMessage(message,isGood=false){
+ const el=$('login-message'); el.textContent=message; el.classList.toggle('good',isGood);
+}
+function firebaseDiagnostic(){
+ const cfg=window.ENGKRES_FIREBASE_CONFIG||{};
+ const expectedUid=String(window.ENGKRES_ADMIN_UID||'');
+ const configured=!!(cfg.apiKey&&cfg.projectId&&cfg.authDomain&&cfg.appId);
+ const lines=[
+  'Proyek Firebase: '+(cfg.projectId||'TIDAK DITEMUKAN'),
+  'Domain Authentication: '+(cfg.authDomain||'TIDAK DITEMUKAN'),
+  'Status SDK: '+(auth?'Berhasil disiapkan':'Belum terhubung'),
+  'UID Admin: '+(expectedUid&&!expectedUid.includes('ISI_')?'Sudah dikonfigurasi':'Belum dikonfigurasi'),
+  'Alamat website: '+location.hostname,
+  '',
+  configured?'Langkah berikutnya: buka Firebase Console pada proyek di atas > Authentication > Users. Pastikan email admin ada di sana.':'Perbaiki atau unggah firebase-config.js milik proyek ENGKRES JEK.'
+ ];
+ const box=$('firebase-diagnostic');box.hidden=false;box.textContent=lines.join('\n');
+}
+$('check-config').onclick=firebaseDiagnostic;
+$('toggle-password').onclick=()=>{
+ const pw=$('login-password'),b=$('toggle-password');
+ const show=pw.type==='password';pw.type=show?'text':'password';b.textContent=show?'Sembunyi':'Lihat';b.setAttribute('aria-label',show?'Sembunyikan password':'Tampilkan password');
+};
+$('login-form').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(!auth){loginMessage('Firebase belum terhubung. Klik Periksa koneksi Firebase.');return}
+ const email=$('login-email').value.trim(),pwd=$('login-password').value;
+ if(!email||!pwd){loginMessage('Email dan password wajib diisi.');return}
+ const btn=$('login-button');btn.disabled=true;btn.textContent='Memeriksa akun…';loginMessage('Menghubungkan ke Firebase Authentication…');
+ try{
+  const credential=await signInWithEmailAndPassword(auth,email,pwd);
+  const allowedUid=String(window.ENGKRES_ADMIN_UID||'');
+  $('login-password').value='';
+  if(credential.user.uid!==allowedUid){
+   await signOut(auth);
+   loginMessage('Email dan password sudah valid, tetapi akun ini bukan UID Admin yang terdaftar di firebase-config.js. Samakan UID berdasarkan Firebase Console > Authentication > Users; jangan mengubah izin database menjadi publik.');
+   return;
+  }
+  loginMessage('Login admin berhasil.',true);
+ }catch(err){loginMessage(errorMessage(err));}
+ finally{btn.disabled=false;btn.textContent='Masuk Admin'}
+});
+$('reset-password').onclick=async()=>{
+ const email=$('login-email').value.trim();
+ if(!auth){loginMessage('Firebase belum terhubung. Klik Periksa koneksi Firebase.');return}
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){loginMessage('Isi email admin yang terdaftar di Firebase terlebih dahulu.');$('login-email').focus();return}
+ const button=$('reset-password');button.disabled=true;
+ try{
+  await sendPasswordResetEmail(auth,email);
+  loginMessage('Permintaan reset dikirim. Jika email ini memiliki akun di proyek Firebase, periksa inbox dan folder spam, lalu ikuti tautan penggantian password.',true);
+ }catch(err){loginMessage(errorMessage(err));}
+ finally{button.disabled=false}
+};
 $('logout').onclick=async()=>{await signOut(auth);$('admin-modal').classList.add('hidden')};
 function assertAdmin(){if(!db||!isAdmin)throw new Error('Anda belum login sebagai Admin yang terdaftar.');}
 function fileToImage(file,max=500){return new Promise((resolve,reject)=>{if(!file){resolve(null);return}if(!file.type.startsWith('image/')){reject(new Error('Harap pilih gambar JPG, PNG, atau WEBP.'));return}const input=new FileReader();input.onerror=()=>reject(new Error('File gambar gagal dibaca.'));input.onload=()=>{const image=new Image();image.onerror=()=>reject(new Error('Gambar tidak dapat dibuka.'));image.onload=()=>{let width=image.width,height=image.height,scale=Math.min(1,max/Math.max(width,height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);const data=canvas.toDataURL('image/jpeg',.72);if(data.length>260000){reject(new Error('Foto terlalu besar setelah kompresi. Coba foto lebih kecil.'));return}resolve(data)};image.src=input.result};input.readAsDataURL(file)})}
@@ -262,7 +349,27 @@ function readOld(key){try{return JSON.parse(localStorage.getItem(key)||'null')}c
 $('import-legacy').onclick=async()=>{try{assertAdmin();const oldConfig=readOld('engkres_config_v2'),oldDrivers=readOld('engkres_drivers_v2'),oldShops=readOld('engkres_umkm_v2');if(!oldConfig&&!oldDrivers&&!oldShops){$('import-message').textContent='Data lama tidak ditemukan di browser/alamat website ini. Buka alamat lama di laptop tempat perubahan sebelumnya dilakukan.';return}const msg=`Data ditemukan: ${Array.isArray(oldDrivers)?oldDrivers.length:0} driver, ${Array.isArray(oldShops)?oldShops.length:0} UMKM, ${oldConfig?'pengaturan logo/WA ada':'pengaturan tidak ada'}. Data baru akan ditambahkan ke Firebase. Lanjut?`;if(!confirm(msg))return;const btn=$('import-legacy');btn.disabled=true;$('import-message').textContent='Memindahkan data lama ke Firebase…';if(oldConfig&&typeof oldConfig==='object'){let cfg={};if(oldConfig.phone1)cfg.phone1=cleanPhone(oldConfig.phone1);if(oldConfig.phone2)cfg.phone2=cleanPhone(oldConfig.phone2);if(oldConfig.logo)cfg.logo=await compressExisting(oldConfig.logo,300);await setDoc(settingRef(),{...cfg,updatedAt:serverTimestamp()},{merge:true})}let count=0;for(const [kind,arr] of [['drivers',oldDrivers],['umkm',oldShops]]){if(!Array.isArray(arr))continue;for(const x of arr){if(!x||!x.name)continue;const record={name:String(x.name).slice(0,100),photo:await compressExisting(x.photo,440),updatedAt:serverTimestamp()};if(kind==='drivers')Object.assign(record,{plate:String(x.plate||'-'),rating:Number(x.rating)||5,status:x.status||'online'});else Object.assign(record,{menu:String(x.menu||'-'),price:Number(x.price)||0,open:x.open!==false});const key='legacy-'+kind+'-'+String(x.id??count).replace(/[^A-Za-z0-9_-]/g,'_');await setDoc(doc(db,kind,key),record,{merge:true});count++}}$('import-message').textContent=`Berhasil memindahkan ${count} data dan pengaturan yang tersedia. Lihat hasilnya di HP lain.`;alert('Impor selesai. Cek aplikasi di HP lain.') }catch(e){$('import-message').textContent=errorMessage(e)}finally{$('import-legacy').disabled=false}};
 function listenRealtime(){onSnapshot(settingRef(),snap=>{initial.settings=true;settings=snap.exists()?snap.data():{};renderSettings();checkConnected()},err=>status('Gagal membaca pengaturan: '+errorMessage(err),'bad'));onSnapshot(collectionDrivers(),snap=>{initial.drivers=true;drivers=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name));renderDrivers();renderAdminLists();checkConnected()},err=>status('Gagal membaca driver: '+errorMessage(err),'bad'));onSnapshot(collectionShops(),snap=>{initial.shops=true;shops=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.name.localeCompare(b.name));renderShops();renderAdminLists();checkConnected()},err=>status('Gagal membaca UMKM: '+errorMessage(err),'bad'))}
 function checkConnected(){if(initial.settings&&initial.drivers&&initial.shops)status('● Terhubung ke Firebase — perubahan diperbarui otomatis','online')}
-async function start(){setService('ride');updateFare();$('header-logo').src=fallbackLogo;renderDrivers();renderShops();const cfg=window.ENGKRES_FIREBASE_CONFIG||{},uid=String(window.ENGKRES_ADMIN_UID||'');if(!cfg.apiKey||!cfg.projectId||!cfg.appId||cfg.apiKey.includes('ISI_')||!uid||uid.includes('ISI_')){status('Firebase belum diatur — lengkapi firebase-config.js agar data dapat sinkron.','bad');return}try{const app=initializeApp(cfg);db=getFirestore(app);auth=getAuth(app);onAuthStateChanged(auth,u=>{authUser=u;isAdmin=!!u&&u.uid===uid;if(u&&!isAdmin){signOut(auth);alert('Akun tidak diizinkan sebagai Admin. Periksa UID Firebase.')};renderAuth()});listenRealtime()}catch(e){status('Gagal terhubung: '+errorMessage(e),'bad')}}
+async function start(){
+ setService('ride');updateFare();$('header-logo').src=fallbackLogo;renderDrivers();renderShops();
+ const cfg=window.ENGKRES_FIREBASE_CONFIG||{},uid=String(window.ENGKRES_ADMIN_UID||'');
+ if(!cfg.apiKey||!cfg.projectId||!cfg.authDomain||!cfg.appId||cfg.apiKey.includes('ISI_')||!uid||uid.includes('ISI_')){
+  status('Firebase belum diatur atau firebase-config.js belum dimuat. Data online tidak dapat dibaca.','bad');
+  loginMessage('Konfigurasi Firebase belum lengkap. Klik Periksa koneksi Firebase.');return;
+ }
+ try{
+  const app=initializeApp(cfg);db=getFirestore(app);auth=getAuth(app);
+  onAuthStateChanged(auth,u=>{
+   if(u&&u.uid!==uid){
+    authUser=null;isAdmin=false;renderAuth();
+    signOut(auth).catch(e=>loginMessage(errorMessage(e)));
+    return;
+   }
+   authUser=u;isAdmin=!!u;
+   renderAuth();
+  },err=>{authUser=null;isAdmin=false;renderAuth();loginMessage(errorMessage(err))});
+  listenRealtime();
+ }catch(e){status('Gagal terhubung ke Firebase: '+errorMessage(e),'bad');loginMessage(errorMessage(e))}
+}
 start();
 </script>
 <script>
