@@ -250,7 +250,7 @@ function errorMessage(e){
  console.error('ENGKRES JEK:',e?.code||e?.message||e);
  const code=String(e?.code||'unknown');
  const messages={
-  'auth/invalid-credential':'Email atau password tidak cocok dengan akun Firebase proyek ini. Periksa Authentication > Users di proyek yang tercantum pada tombol Periksa koneksi Firebase. Jika lupa, gunakan reset password.',
+  'auth/invalid-credential':'Login ditolak oleh Firebase (auth/invalid-credential). Email atau password tidak cocok dengan akun di proyek ini. Periksa Firebase Console > Authentication > Users; jika akun ada, reset password. Jika belum ada, daftarkan dahulu. File HTML tidak bisa membuat password otomatis.',
   'auth/wrong-password':'Email atau password tidak cocok dengan akun Firebase proyek ini.',
   'auth/user-not-found':'Email ini tidak ditemukan di Authentication > Users pada proyek Firebase yang terhubung.',
   'auth/invalid-email':'Format email belum benar. Contoh: nama@gmail.com',
@@ -293,11 +293,11 @@ function firebaseDiagnostic(){
  const lines=[
   'Proyek Firebase: '+(cfg.projectId||'TIDAK DITEMUKAN'),
   'Domain Authentication: '+(cfg.authDomain||'TIDAK DITEMUKAN'),
-  'Status SDK: '+(auth?'Berhasil disiapkan':'Belum terhubung'),
-  'UID Admin: '+(expectedUid&&!expectedUid.includes('ISI_')?'Sudah dikonfigurasi':'Belum dikonfigurasi'),
+  'Status SDK: '+(auth?'Dimuat; akun belum diverifikasi':'Belum terhubung'),
+  'UID Admin: '+(expectedUid&&!expectedUid.includes('ISI_')?'Tersedia di konfigurasi (belum dicek terhadap akun Anda)':'Belum dikonfigurasi'),
   'Alamat website: '+location.hostname,
   '',
-  configured?'Langkah berikutnya: buka Firebase Console pada proyek di atas > Authentication > Users. Pastikan email admin ada di sana.':'Perbaiki atau unggah firebase-config.js milik proyek ENGKRES JEK.'
+  configured?'Langkah 1: Firebase Console > Authentication > Users > cari email yang digunakan.\nLangkah 2: jika akun ada, reset password; jika tidak, buat melalui Add user.\nLangkah 3: cocokkan User UID dengan ENGKRES_ADMIN_UID pada firebase-config.js.':'Perbaiki atau unggah firebase-config.js milik proyek ENGKRES JEK.'
  ];
  const box=$('firebase-diagnostic');box.hidden=false;box.textContent=lines.join('\n');
 }
@@ -311,6 +311,8 @@ $('login-form').addEventListener('submit',async e=>{
  if(!auth){loginMessage('Firebase belum terhubung. Klik Periksa koneksi Firebase.');return}
  const email=$('login-email').value.trim(),pwd=$('login-password').value;
  if(!email||!pwd){loginMessage('Email dan password wajib diisi.');return}
+ // Tutup tampilan password kembali agar tidak terlihat dalam tangkapan layar.
+ $('login-password').type='password';$('toggle-password').textContent='Lihat';$('toggle-password').setAttribute('aria-label','Tampilkan password');
  const btn=$('login-button');btn.disabled=true;btn.textContent='Memeriksa akun…';loginMessage('Menghubungkan ke Firebase Authentication…');
  try{
   const credential=await signInWithEmailAndPassword(auth,email,pwd);
@@ -322,8 +324,9 @@ $('login-form').addEventListener('submit',async e=>{
    return;
   }
   loginMessage('Login admin berhasil.',true);
- }catch(err){loginMessage(errorMessage(err));}
- finally{btn.disabled=false;btn.textContent='Masuk Admin'}
+ }catch(err){loginMessage(errorMessage(err));
+  if(['auth/invalid-credential','auth/wrong-password','auth/user-not-found'].includes(err?.code))$('login-password').value='';
+ }finally{btn.disabled=false;btn.textContent='Masuk Admin'}
 });
 $('reset-password').onclick=async()=>{
  const email=$('login-email').value.trim();
